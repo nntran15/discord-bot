@@ -9,3 +9,4 @@ class Job:
     url: str
     source: str
     posted_date: str = ""
+    location: str = ""

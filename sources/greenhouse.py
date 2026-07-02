@@ -15,6 +15,15 @@ def _company_name(company_slug: str) -> str:
     return company_slug.replace("-", " ").title()
 
 
+def _job_location(posting: dict) -> str:
+    location = posting.get("location") or {}
+    return str(location.get("name") or "")
+
+
+def _posted_date(posting: dict) -> str:
+    return str(posting.get("first_published") or posting.get("updated_at") or "")
+
+
 def fetch_jobs(company_slug: str) -> list[Job]:
     try:
         response = requests.get(API_URL.format(company_slug=company_slug), timeout=20)
@@ -39,7 +48,8 @@ def fetch_jobs(company_slug: str) -> list[Job]:
                 company=_company_name(company_slug),
                 url=job_url,
                 source="greenhouse",
-                posted_date=posting.get("updated_at", ""),
+                posted_date=_posted_date(posting),
+                location=_job_location(posting),
             )
         )
 

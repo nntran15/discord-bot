@@ -31,6 +31,24 @@ def _format_timestamp(raw_timestamp: int | str | None) -> str:
     return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat()
 
 
+def _job_location(posting: dict) -> str:
+    categories = posting.get("categories") or {}
+    location = str(categories.get("location") or "").strip()
+    if not location:
+        all_locations = [str(value).strip() for value in categories.get("allLocations") or [] if str(value).strip()]
+        if all_locations:
+            location = "\n".join(all_locations)
+
+    country = str(posting.get("country") or "").strip()
+    if not location:
+        return country
+
+    if location.lower() == "remote" and country:
+        return f"{location}, {country}"
+
+    return location
+
+
 def fetch_jobs(company_slug: str) -> list[Job]:
     try:
         response = requests.get(API_URL.format(company_slug=company_slug), timeout=20)
@@ -56,6 +74,7 @@ def fetch_jobs(company_slug: str) -> list[Job]:
                 url=job_url,
                 source="lever",
                 posted_date=_format_timestamp(posting.get("createdAt")),
+                location=_job_location(posting),
             )
         )
 

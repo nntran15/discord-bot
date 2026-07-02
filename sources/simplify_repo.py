@@ -27,7 +27,7 @@ def _is_separator_row(line: str) -> bool:
 
 def _strip_markdown(value: str) -> str:
     cleaned = MARKDOWN_LINK_PATTERN.sub(lambda match: match.group(1), value)
-    cleaned = cleaned.replace("<br>", " ")
+    cleaned = re.sub(r"<br\s*/?>|</br>", "\n", cleaned, flags=re.IGNORECASE)
     cleaned = cleaned.replace("**", "")
     cleaned = cleaned.replace("`", "")
     return html.unescape(cleaned).strip()
@@ -52,6 +52,7 @@ def _row_to_job(headers: list[str], cells: list[str]) -> Job | None:
     if not title_cell and len(cells) > 1:
         title_cell = cells[1]
 
+    location_cell = _find_cell(headers, cells, ("location",))
     url_cell = _find_cell(headers, cells, ("application", "apply", "link", "url"))
     posted_date_cell = _find_cell(headers, cells, ("date", "posted", "updated"))
 
@@ -64,6 +65,7 @@ def _row_to_job(headers: list[str], cells: list[str]) -> Job | None:
 
     company = _strip_markdown(company_cell)
     title = _strip_markdown(title_cell)
+    location = _strip_markdown(location_cell)
     posted_date = _strip_markdown(posted_date_cell)
     if not company or not title or not job_url:
         return None
@@ -77,6 +79,7 @@ def _row_to_job(headers: list[str], cells: list[str]) -> Job | None:
         url=job_url,
         source="simplify",
         posted_date=posted_date,
+        location=location,
     )
 
 

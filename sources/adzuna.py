@@ -46,6 +46,7 @@ def fetch_jobs(
             continue
 
         company_data = result.get("company") or {}
+        location_data = result.get("location") or {}
         jobs.append(
             Job(
                 id=f"adzuna:{job_id}",
@@ -54,6 +55,7 @@ def fetch_jobs(
                 url=job_url,
                 source="adzuna",
                 posted_date=result.get("created", ""),
+                location=str(location_data.get("display_name") or ""),
             )
         )
 

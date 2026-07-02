@@ -55,6 +55,7 @@ def fetch_jobs_for_tenant(
                 url=f"https://{tenant}.{pod}.myworkdayjobs.com{external_path}",
                 source="workday",
                 posted_date=posting.get("postedOn", ""),
+                location=str(posting.get("locationsText") or ""),
             )
         )
 

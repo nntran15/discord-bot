@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
-from dedupe import get_discovered_sources, init_db, is_seen, mark_seen
+from dedupe import dedupe_jobs, get_discovered_sources, init_db, is_seen, mark_seen
 from filter_jobs import filter_jobs, load_filters
 from notify_discord import send_batch
 from sources import adzuna, greenhouse, lever, simplify_repo, workday
@@ -79,7 +79,8 @@ def main() -> int:
         fetched_jobs.extend(workday.fetch_all(workday_sources))
 
         filtered_jobs = filter_jobs(fetched_jobs, include_patterns, exclude_patterns)
-        new_jobs = [job for job in filtered_jobs if not is_seen(conn, job.id)]
+        unique_jobs = dedupe_jobs(filtered_jobs)
+        new_jobs = [job for job in unique_jobs if not is_seen(conn, job)]
         webhook_url = os.getenv("DISCORD_WEBHOOK_URL", "")
         notified_count = 0
 
@@ -98,7 +99,7 @@ def main() -> int:
         LOGGER.info(
             "Fetched %s jobs, %s passed filtering, %s were new, %s were notified.",
             len(fetched_jobs),
-            len(filtered_jobs),
+            len(unique_jobs),
             len(new_jobs),
             notified_count,
         )

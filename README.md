@@ -1,6 +1,6 @@
 # Junior SWE Job Alert Discord Bot
 
-This project runs a fully scheduled job-alert pipeline on GitHub Actions. Every 30 minutes it polls several public job sources, filters for junior and new-grad software engineering roles, deduplicates against a committed SQLite state file, and posts only new matches to a Discord channel through a webhook. A second daily workflow discovers additional Greenhouse, Lever, and Workday sources through Brave Search so the polling coverage expands over time without requiring manual code changes.
+This project runs a fully scheduled job-alert pipeline on GitHub Actions. Every 30 minutes it polls several public job sources, filters for junior and new-grad software engineering roles that are U.S.-based and were posted within roughly the last week, deduplicates against a committed SQLite state file, and posts only new matches to a Discord channel through a webhook. A second daily workflow discovers additional Greenhouse, Lever, and Workday sources through Brave Search so the polling coverage expands over time without requiring manual code changes.
 
 ## Setup
 
@@ -66,7 +66,7 @@ python discover.py
 
 Edit `config/companies.yaml` to add more direct Greenhouse and Lever company slugs. This is the manual seed list for companies you already know you want to watch.
 
-Edit `config/filters.yaml` to loosen or tighten the junior-role matching rules. A title is kept only if it matches at least one include pattern and none of the exclude patterns.
+Edit `config/filters.yaml` to loosen or tighten the junior-role matching rules. A posting is kept only if its title matches at least one include pattern, none of the exclude patterns, the location can be verified as U.S.-based, and the posting timestamp can be verified as no more than roughly one week old.
 
 Edit `config/discovery_queries.yaml` to add more Brave Search queries for discovering new Greenhouse, Lever, and Workday sources over time.
 
