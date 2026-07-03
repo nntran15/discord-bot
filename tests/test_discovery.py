@@ -107,6 +107,21 @@ class DiscoverySearchTests(unittest.TestCase):
             },
         )
 
+    def test_parse_discovered_source_supports_ashby_url(self) -> None:
+        source = discovery.parse_discovered_source(
+            "https://jobs.ashbyhq.com/rundoo/c1fa53ea-dadf-4dcf-a144-f71bda03c9fa/application?src=linkedin"
+        )
+
+        self.assertEqual(
+            source,
+            {
+                "tenant": "rundoo",
+                "pod": "",
+                "site": "",
+                "ats": "ashby",
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

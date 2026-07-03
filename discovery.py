@@ -21,6 +21,10 @@ LEVER_URL_PATTERN = re.compile(
     r"^https://jobs\.lever\.co/(?P<slug>[a-z0-9-]+)/[a-f0-9-]+(?:/.*)?$",
     re.IGNORECASE,
 )
+ASHBY_URL_PATTERN = re.compile(
+    r"^https://jobs\.ashbyhq\.com/(?P<slug>[a-z0-9-]+)/(?P<job_id>[a-f0-9-]{36})(?:/application)?(?:\?.*)?$",
+    re.IGNORECASE,
+)
 
 
 def search(query: str, api_key: str, count: int = 50) -> list[dict]:
@@ -115,8 +119,21 @@ def parse_lever_url(url: str) -> dict | None:
     }
 
 
+def parse_ashby_url(url: str) -> dict | None:
+    match = ASHBY_URL_PATTERN.match(url)
+    if not match:
+        return None
+
+    return {
+        "tenant": match.group("slug"),
+        "pod": "",
+        "site": "",
+        "ats": "ashby",
+    }
+
+
 def parse_discovered_source(url: str) -> dict | None:
-    for parser in (parse_workday_url, parse_greenhouse_url, parse_lever_url):
+    for parser in (parse_workday_url, parse_greenhouse_url, parse_lever_url, parse_ashby_url):
         parsed = parser(url)
         if parsed:
             return parsed

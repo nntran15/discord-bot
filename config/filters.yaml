@@ -2,9 +2,18 @@ include_patterns:
   - '\bjunior\b'
   - '\bentry[\s-]?level\b'
   - '\bnew\s?grad(uate)?\b'
+  - '\bgraduate\b'
   - '\bsoftware engineer\s*i\b'
   - '\bswe\s*i\b'
+  - '\bsoftware\b.*\bengineer\s*i\b'
+  - '\bengineer\s*i\b.*\bsoftware\b'
   - '\bassociate software engineer\b'
+  - '\bsoftware engineer(?:ing)?\b.*\bco-?op\b'
+  - '\bco-?op\b.*\bsoftware engineer(?:ing)?\b'
+  - '\bsoftware engineer(?:ing)?\b.*\bintern(ship)?\b'
+  - '\bintern(ship)?\b.*\bsoftware engineer(?:ing)?\b'
+  - '\bearly[\s-]?career\b.*\bsoftware\b'
+  - '\bsoftware\b.*\bearly[\s-]?career\b'
   - '\b(0|1)\s*-?\s*2\+?\s*years?\b'
 
 exclude_patterns:

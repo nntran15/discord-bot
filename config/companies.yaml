@@ -1,5 +1,5 @@
 # Add company slugs you want to poll directly. Find a company's slug from their public
-# careers page URL, e.g. boards.greenhouse.io/{slug} or jobs.lever.co/{slug}.
+# careers page URL, e.g. boards.greenhouse.io/{slug}, jobs.lever.co/{slug}, or jobs.ashbyhq.com/{slug}.
 greenhouse:
   - stripe
   - notion
@@ -8,3 +8,4 @@ greenhouse:
 lever:
   - netflix
   - palantir
+ashby: []

@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from datetime import datetime, timedelta, timezone
 
-from filter_jobs import filter_jobs
+from filter_jobs import filter_jobs, load_filters
 from sources.base import Job
 
 
@@ -70,6 +70,35 @@ class FilterJobsTests(unittest.TestCase):
         )
 
         self.assertEqual([job.id for job in filtered], [recent_us_job.id, same_day_job.id, week_old_job.id])
+
+    def test_default_filters_match_coop_and_early_career_titles(self) -> None:
+        now = datetime(2026, 7, 2, 12, 0, tzinfo=timezone.utc)
+        include_patterns, exclude_patterns = load_filters(
+            "c:\\Users\\Nathan\\Desktop\\Personal\\Programming\\Discord Bot\\job-alert-bot\\config\\filters.yaml"
+        )
+
+        coop_job = Job(
+            id="workday:coop",
+            title="Software Engineering Co-op Spring 2027",
+            company="Example",
+            url="https://example.com/jobs/coop",
+            source="workday",
+            posted_date="Posted Yesterday",
+            location="USA, Louisville, KY",
+        )
+        early_career_job = Job(
+            id="workday:early-career",
+            title="Avionics Software (Embedded) Engineer I - Early Career - 2026 Starts",
+            company="Example",
+            url="https://example.com/jobs/early-career",
+            source="workday",
+            posted_date="Posted Today",
+            location="Greater Seattle Area, USA",
+        )
+
+        filtered = filter_jobs([coop_job, early_career_job], include_patterns, exclude_patterns, now=now)
+
+        self.assertEqual([job.id for job in filtered], [coop_job.id, early_career_job.id])
 
 
 if __name__ == "__main__":

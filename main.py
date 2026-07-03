@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from dedupe import dedupe_jobs, get_discovered_sources, init_db, is_seen, mark_seen
 from filter_jobs import filter_jobs, load_filters
 from notify_discord import send_batch
-from sources import adzuna, greenhouse, lever, simplify_repo, workday
+from sources import adzuna, ashby, greenhouse, lever, simplify_repo, workday
 from sources.base import Job
 
 
@@ -64,11 +64,15 @@ def main() -> int:
         lever_slugs = sorted(
             set(companies.get("lever", [])) | set(get_discovered_slugs(discovered_sources, "lever"))
         )
+        ashby_slugs = sorted(
+            set(companies.get("ashby", [])) | set(get_discovered_slugs(discovered_sources, "ashby"))
+        )
         workday_sources = [source for source in discovered_sources if source.get("ats", "workday") == "workday"]
 
         fetched_jobs: list[Job] = []
         fetched_jobs.extend(greenhouse.fetch_all(greenhouse_slugs))
         fetched_jobs.extend(lever.fetch_all(lever_slugs))
+        fetched_jobs.extend(ashby.fetch_all(ashby_slugs))
         fetched_jobs.extend(
             adzuna.fetch_jobs(
                 app_id=os.getenv("ADZUNA_APP_ID", ""),
