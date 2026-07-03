@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
+import re
 import unittest
 from unittest.mock import patch
 
 import requests
+import yaml
 
 import discovery
 
@@ -63,9 +66,27 @@ class DiscoverySearchTests(unittest.TestCase):
         self.assertEqual(mock_get.call_args_list[0].kwargs["params"]["count"], 20)
         self.assertEqual(mock_get.call_args_list[0].kwargs["params"]["offset"], 0)
         self.assertEqual(mock_get.call_args_list[1].kwargs["params"]["count"], 20)
-        self.assertEqual(mock_get.call_args_list[1].kwargs["params"]["offset"], 20)
+        self.assertEqual(mock_get.call_args_list[1].kwargs["params"]["offset"], 1)
         self.assertEqual(mock_get.call_args_list[2].kwargs["params"]["count"], 10)
-        self.assertEqual(mock_get.call_args_list[2].kwargs["params"]["offset"], 40)
+        self.assertEqual(mock_get.call_args_list[2].kwargs["params"]["offset"], 2)
+
+    @patch("discovery.requests.get")
+    def test_search_skips_queries_that_exceed_brave_limits(self, mock_get) -> None:
+        query = "word " * 51
+
+        results = discovery.search(query.strip(), "token")
+
+        self.assertEqual(results, [])
+        mock_get.assert_not_called()
+
+    def test_discovery_queries_fit_brave_limits(self) -> None:
+        config_path = Path("config/discovery_queries.yaml")
+        queries = yaml.safe_load(config_path.read_text(encoding="utf-8"))["queries"]
+
+        for query in queries:
+            with self.subTest(query=query):
+                self.assertLessEqual(len(query), 400)
+                self.assertLessEqual(len(re.findall(r"\S+", query)), 50)
 
     def test_parse_discovered_source_supports_greenhouse_url(self) -> None:
         source = discovery.parse_discovered_source("https://boards.greenhouse.io/twilio/jobs/3409275")

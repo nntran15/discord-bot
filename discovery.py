@@ -10,6 +10,10 @@ import requests
 LOGGER = logging.getLogger(__name__)
 SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
 MAX_RESULTS_PER_REQUEST = 20
+MAX_QUERY_CHARS = 400
+MAX_QUERY_WORDS = 50
+MAX_OFFSET = 9
+QUERY_WORD_PATTERN = re.compile(r"\S+")
 WORKDAY_URL_PATTERN = re.compile(
     r"^https://(?P<tenant>[a-z0-9-]+)\.(?P<pod>wd\d+)\.myworkdayjobs\.com/(?:[^/?#]+/)*(?P<site>[^/?#]+)/job/",
     re.IGNORECASE,
@@ -40,6 +44,15 @@ def search(query: str, api_key: str, count: int = 50) -> list[dict]:
         LOGGER.warning("Skipping Workday discovery search: missing BRAVE_API_KEY")
         return []
 
+    word_count = _query_word_count(query)
+    if len(query) > MAX_QUERY_CHARS or word_count > MAX_QUERY_WORDS:
+        LOGGER.warning(
+            "Skipping Brave search query exceeding API limits (chars=%s, words=%s)",
+            len(query),
+            word_count,
+        )
+        return []
+
     headers = {
         "X-Subscription-Token": api_key,
         "Accept": "application/json",
@@ -52,7 +65,7 @@ def search(query: str, api_key: str, count: int = 50) -> list[dict]:
     offset = 0
     remaining = count
 
-    while remaining > 0:
+    while remaining > 0 and offset <= MAX_OFFSET:
         request_count = min(remaining, MAX_RESULTS_PER_REQUEST)
         params = {"q": query, "count": request_count, "offset": offset}
 
@@ -68,6 +81,14 @@ def search(query: str, api_key: str, count: int = 50) -> list[dict]:
                 response.status_code,
             )
             return []
+        if response.status_code == 422:
+            LOGGER.warning(
+                "Brave search rejected query (chars=%s, words=%s, offset=%s)",
+                len(query),
+                word_count,
+                offset,
+            )
+            return []
 
         try:
             response.raise_for_status()
@@ -80,12 +101,16 @@ def search(query: str, api_key: str, count: int = 50) -> list[dict]:
         results.extend(page_results)
 
         remaining -= request_count
-        offset += request_count
+        offset += 1
 
         if not payload.get("query", {}).get("more_results_available", False):
             break
 
     return results
+
+
+def _query_word_count(query: str) -> int:
+    return len(QUERY_WORD_PATTERN.findall(query))
 
 
 def parse_workday_url(url: str) -> dict | None:
