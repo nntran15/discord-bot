@@ -14,7 +14,7 @@ WORKDAY_URL_PATTERN = re.compile(
     re.IGNORECASE,
 )
 GREENHOUSE_URL_PATTERN = re.compile(
-    r"^https://boards\.greenhouse\.io/(?P<slug>[a-z0-9-]+)/jobs/\d+",
+    r"^https://(?:boards|job-boards)\.greenhouse\.io/(?P<slug>[a-z0-9-]+)/jobs/\d+",
     re.IGNORECASE,
 )
 LEVER_URL_PATTERN = re.compile(

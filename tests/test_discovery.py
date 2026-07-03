@@ -79,6 +79,19 @@ class DiscoverySearchTests(unittest.TestCase):
             },
         )
 
+    def test_parse_discovered_source_supports_job_boards_greenhouse_url(self) -> None:
+        source = discovery.parse_discovered_source("https://job-boards.greenhouse.io/xai/jobs/5179367007")
+
+        self.assertEqual(
+            source,
+            {
+                "tenant": "xai",
+                "pod": "",
+                "site": "",
+                "ats": "greenhouse",
+            },
+        )
+
     def test_parse_discovered_source_supports_lever_url(self) -> None:
         source = discovery.parse_discovered_source(
             "https://jobs.lever.co/whoop/3b94218d-3a5a-4dd1-91c7-5f18655c93a8"

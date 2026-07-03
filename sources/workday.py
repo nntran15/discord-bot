@@ -15,6 +15,16 @@ def _company_name(tenant: str) -> str:
     return tenant.replace("-", " ").title()
 
 
+def _public_job_url(tenant: str, pod: str, site: str, external_path: str) -> str:
+    if not external_path.startswith("/"):
+        external_path = f"/{external_path}"
+
+    if site:
+        return f"https://{tenant}.{pod}.myworkdayjobs.com/en-US/{site}{external_path}"
+
+    return f"https://{tenant}.{pod}.myworkdayjobs.com{external_path}"
+
+
 def fetch_jobs_for_tenant(
     tenant: str,
     pod: str,
@@ -52,7 +62,7 @@ def fetch_jobs_for_tenant(
                 id=f"workday:{tenant}:{external_path}",
                 title=title,
                 company=_company_name(tenant),
-                url=f"https://{tenant}.{pod}.myworkdayjobs.com{external_path}",
+                url=_public_job_url(tenant, pod, site, external_path),
                 source="workday",
                 posted_date=posting.get("postedOn", ""),
                 location=str(posting.get("locationsText") or ""),
