@@ -1,6 +1,6 @@
 # Junior SWE Job Alert Discord Bot
 
-This project runs a fully scheduled job-alert pipeline on GitHub Actions. Every 30 minutes it polls several public job sources, filters for junior and new-grad software engineering roles that are U.S.-based and were posted within roughly the last week, deduplicates against a committed SQLite state file, and posts only new matches to a Discord channel through a webhook. A second daily workflow discovers additional Greenhouse, Lever, Ashby, and Workday sources through Brave Search so the polling coverage expands over time without requiring manual code changes.
+This project runs a fully scheduled job-alert pipeline on GitHub Actions. Every 30 minutes it polls several public job sources, filters for junior and new-grad software engineering roles that are U.S.-based and were posted within roughly the last week, deduplicates against a committed SQLite state file, and posts only new matches to a Discord channel through a webhook. A second daily workflow discovers additional Greenhouse, Lever, Ashby, Workday, and compatible custom career-site pages through Brave Search so the polling coverage expands over time without requiring manual code changes.
 
 ## Setup
 
@@ -66,14 +66,16 @@ python discover.py
 
 Edit `config/companies.yaml` to add more direct Greenhouse, Lever, and Ashby company slugs. This is the manual seed list for companies you already know you want to watch.
 
+You can also add direct custom job-page URLs under `custom` in `config/companies.yaml`. Custom-page support currently expects the page HTML to expose Schema.org `JobPosting` JSON-LD metadata.
+
 Edit `config/filters.yaml` to loosen or tighten the junior-role matching rules. A posting is kept only if its title matches at least one include pattern, none of the exclude patterns, the location can be verified as U.S.-based, and the posting timestamp can be verified as no more than roughly one week old.
 
-Edit `config/discovery_queries.yaml` to add more Brave Search queries for discovering new Greenhouse, Lever, and Workday sources over time.
+Edit `config/discovery_queries.yaml` to add more Brave Search queries for discovering new Greenhouse, Lever, Ashby, Workday, and compatible custom job pages over time.
 
 ## How the workflows relate
 
-`.github/workflows/check_jobs.yml` runs `main.py` every 30 minutes. It fetches jobs from configured Greenhouse, Lever, and Ashby boards, Adzuna, the SimplifyJobs new-grad repository, and any discovered Greenhouse, Lever, Ashby, or Workday sources already stored in `db/jobs.sqlite`, then posts new matches to Discord and commits the updated `seen_jobs` state back to the repo.
+`.github/workflows/check_jobs.yml` runs `main.py` every 30 minutes. It fetches jobs from configured Greenhouse, Lever, and Ashby boards, configured custom job pages, Adzuna, the SimplifyJobs new-grad repository, and any discovered Greenhouse, Lever, Ashby, Workday, or compatible custom sources already stored in `db/jobs.sqlite`, then posts new matches to Discord and commits the updated `seen_jobs` state back to the repo.
 
-`.github/workflows/discover_tenants.yml` runs `discover.py` once per day. It uses Brave Search to find new Greenhouse, Lever, Ashby, and Workday job-board URLs, extracts the source metadata, stores any new sources in the same SQLite file, and commits the updated discovery state back to the repo.
+`.github/workflows/discover_tenants.yml` runs `discover.py` once per day. It uses Brave Search to find new Greenhouse, Lever, Ashby, and Workday job-board URLs plus compatible custom job pages, extracts the source metadata, stores any new sources in the same SQLite file, and commits the updated discovery state back to the repo.
 
 Both workflows share the same `db-write` concurrency group so only one job writes `db/jobs.sqlite` at a time.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from urllib.parse import urlsplit, urlunsplit
 
 import requests
 
@@ -25,6 +26,13 @@ ASHBY_URL_PATTERN = re.compile(
     r"^https://jobs\.ashbyhq\.com/(?P<slug>[a-z0-9-]+)/(?P<job_id>[a-f0-9-]{36})(?:/application)?(?:\?.*)?$",
     re.IGNORECASE,
 )
+CUSTOM_HOST_SKIP_PATTERNS = (
+    re.compile(r"(?:^|\.)myworkdayjobs\.com$", re.IGNORECASE),
+    re.compile(r"(?:^|\.)greenhouse\.io$", re.IGNORECASE),
+    re.compile(r"(?:^|\.)lever\.co$", re.IGNORECASE),
+    re.compile(r"(?:^|\.)ashbyhq\.com$", re.IGNORECASE),
+)
+JSONLD_PATTERN = re.compile(r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', re.I | re.S)
 
 
 def search(query: str, api_key: str, count: int = 50) -> list[dict]:
@@ -132,6 +140,32 @@ def parse_ashby_url(url: str) -> dict | None:
     }
 
 
+def parse_custom_source(url: str) -> dict | None:
+    normalized_url = _normalize_custom_url(url)
+    if not normalized_url:
+        return None
+
+    parsed_url = urlsplit(normalized_url)
+    if any(pattern.search(parsed_url.netloc) for pattern in CUSTOM_HOST_SKIP_PATTERNS):
+        return None
+
+    try:
+        response = requests.get(normalized_url, timeout=20)
+        response.raise_for_status()
+    except requests.RequestException:
+        return None
+
+    if not _has_jobposting_jsonld(response.text):
+        return None
+
+    return {
+        "tenant": parsed_url.netloc,
+        "pod": "",
+        "site": normalized_url,
+        "ats": "custom",
+    }
+
+
 def parse_discovered_source(url: str) -> dict | None:
     for parser in (parse_workday_url, parse_greenhouse_url, parse_lever_url, parse_ashby_url):
         parsed = parser(url)
@@ -149,6 +183,8 @@ def run_discovery(queries: list[str], api_key: str) -> list[dict]:
         for item in search(query, api_key):
             source = parse_discovered_source(item.get("url", ""))
             if not source:
+                source = parse_custom_source(item.get("url", ""))
+            if not source:
                 continue
 
             key = (
@@ -164,3 +200,27 @@ def run_discovery(queries: list[str], api_key: str) -> list[dict]:
             discovered.append(source)
 
     return discovered
+
+
+def _normalize_custom_url(url: str) -> str:
+    if not url:
+        return ""
+
+    parsed = urlsplit(url)
+    if not parsed.scheme or not parsed.netloc:
+        return ""
+
+    netloc = parsed.netloc.lower()
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+
+    path = parsed.path.rstrip("/") or "/"
+    return urlunsplit((parsed.scheme.lower(), netloc, path, parsed.query, ""))
+
+
+def _has_jobposting_jsonld(html: str) -> bool:
+    for raw_json in JSONLD_PATTERN.findall(html):
+        if '"JobPosting"' in raw_json or "'JobPosting'" in raw_json:
+            return True
+
+    return False

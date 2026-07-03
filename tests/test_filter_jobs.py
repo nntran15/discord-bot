@@ -100,6 +100,26 @@ class FilterJobsTests(unittest.TestCase):
 
         self.assertEqual([job.id for job in filtered], [coop_job.id, early_career_job.id])
 
+    def test_default_filters_match_ncg_software_titles(self) -> None:
+        now = datetime(2026, 7, 2, 12, 0, tzinfo=timezone.utc)
+        include_patterns, exclude_patterns = load_filters(
+            "c:\\Users\\Nathan\\Desktop\\Personal\\Programming\\Discord Bot\\job-alert-bot\\config\\filters.yaml"
+        )
+
+        ncg_job = Job(
+            id="custom:ncg",
+            title="2026 NCG - Software Engineer, BS/MS",
+            company="Applied Materials",
+            url="https://jobs.appliedmaterials.com/job/-/-/95/94623970944",
+            source="custom",
+            posted_date="2026-07-02",
+            location="Santa Clara, CA",
+        )
+
+        filtered = filter_jobs([ncg_job], include_patterns, exclude_patterns, now=now)
+
+        self.assertEqual([job.id for job in filtered], [ncg_job.id])
+
 
 if __name__ == "__main__":
     unittest.main()

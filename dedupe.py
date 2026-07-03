@@ -42,6 +42,7 @@ SOURCE_PRIORITY = {
     "greenhouse": 0,
     "lever": 0,
     "workday": 0,
+    "custom": 0,
     "adzuna": 1,
     "simplify": 2,
 }

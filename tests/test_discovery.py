@@ -9,9 +9,10 @@ import discovery
 
 
 class FakeResponse:
-    def __init__(self, status_code: int, payload: dict):
+    def __init__(self, status_code: int, payload: dict, text: str = ""):
         self.status_code = status_code
         self._payload = payload
+        self.text = text
 
     def raise_for_status(self) -> None:
         if self.status_code >= 400:
@@ -120,6 +121,34 @@ class DiscoverySearchTests(unittest.TestCase):
                 "site": "",
                 "ats": "ashby",
             },
+        )
+
+    @patch("discovery.search")
+    @patch("discovery.requests.get")
+    def test_run_discovery_supports_custom_jobposting_pages(self, mock_get, mock_search) -> None:
+        mock_search.return_value = [
+            {
+                "url": "https://jobs.northropgrumman.com/careers/job/1340072643008?code=JB-18202&rx_job=R10238678"
+            }
+        ]
+        mock_get.return_value = FakeResponse(
+            200,
+            {},
+            text='''<html><head><script type="application/ld+json">{"@context":"http://schema.org","@type":"JobPosting","title":"Software Engineer","datePosted":"2026-07-01T00:00:00"}</script></head></html>''',
+        )
+
+        sources = discovery.run_discovery(["custom query"], "token")
+
+        self.assertEqual(
+            sources,
+            [
+                {
+                    "tenant": "jobs.northropgrumman.com",
+                    "pod": "",
+                    "site": "https://jobs.northropgrumman.com/careers/job/1340072643008?code=JB-18202&rx_job=R10238678",
+                    "ats": "custom",
+                }
+            ],
         )
 
 
