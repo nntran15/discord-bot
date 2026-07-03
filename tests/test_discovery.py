@@ -88,6 +88,20 @@ class DiscoverySearchTests(unittest.TestCase):
                 self.assertLessEqual(len(query), 400)
                 self.assertLessEqual(len(re.findall(r"\S+", query)), 50)
 
+    @patch("discovery.requests.post")
+    @patch("discovery.search")
+    def test_run_discovery_skips_permanently_invalid_workday_source(self, mock_search, mock_post) -> None:
+        mock_search.return_value = [
+            {
+                "url": "https://scientificgames.wd5.myworkdayjobs.com/en-US/LightWonderExternalCareers/job/test"
+            }
+        ]
+        mock_post.return_value = FakeResponse(422, {})
+
+        sources = discovery.run_discovery(["query"], "token")
+
+        self.assertEqual(sources, [])
+
     def test_parse_discovered_source_supports_greenhouse_url(self) -> None:
         source = discovery.parse_discovered_source("https://boards.greenhouse.io/twilio/jobs/3409275")
 

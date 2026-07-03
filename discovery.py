@@ -14,6 +14,13 @@ MAX_QUERY_CHARS = 400
 MAX_QUERY_WORDS = 50
 MAX_OFFSET = 9
 QUERY_WORD_PATTERN = re.compile(r"\S+")
+PERMANENT_INVALID_SOURCE_STATUSES = {404, 410, 422}
+WORKDAY_VALIDATION_BODY = {
+    "appliedFacets": {},
+    "limit": 1,
+    "offset": 0,
+    "searchText": "software engineer",
+}
 WORKDAY_URL_PATTERN = re.compile(
     r"^https://(?P<tenant>[a-z0-9-]+)\.(?P<pod>wd\d+)\.myworkdayjobs\.com/(?:[^/?#]+/)*(?P<site>[^/?#]+)/job/",
     re.IGNORECASE,
@@ -211,6 +218,8 @@ def run_discovery(queries: list[str], api_key: str) -> list[dict]:
                 source = parse_custom_source(item.get("url", ""))
             if not source:
                 continue
+            if not is_valid_source(source):
+                continue
 
             key = (
                 source["ats"],
@@ -225,6 +234,59 @@ def run_discovery(queries: list[str], api_key: str) -> list[dict]:
             discovered.append(source)
 
     return discovered
+
+
+def is_valid_source(source: dict) -> bool:
+    ats = source.get("ats", "")
+    if ats == "custom":
+        return True
+
+    try:
+        response = _validate_source(source)
+    except requests.RequestException as exc:
+        LOGGER.warning("Source validation failed for %s: %s", _source_label(source), exc)
+        return True
+
+    if response.status_code in PERMANENT_INVALID_SOURCE_STATUSES:
+        LOGGER.info("Skipping invalid discovered source: %s", _source_label(source))
+        return False
+
+    try:
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        LOGGER.warning("Source validation failed for %s: %s", _source_label(source), exc)
+
+    return True
+
+
+def _validate_source(source: dict) -> requests.Response:
+    ats = source.get("ats", "")
+    tenant = source.get("tenant", "")
+    pod = source.get("pod", "")
+    site = source.get("site", "")
+
+    if ats == "greenhouse":
+        return requests.get(f"https://boards-api.greenhouse.io/v1/boards/{tenant}/jobs", timeout=20)
+    if ats == "lever":
+        return requests.get(f"https://api.lever.co/v0/postings/{tenant}", timeout=20)
+    if ats == "ashby":
+        return requests.get(f"https://jobs.ashbyhq.com/{tenant}", timeout=20)
+    if ats == "workday":
+        return requests.post(
+            f"https://{tenant}.{pod}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs",
+            json=WORKDAY_VALIDATION_BODY,
+            timeout=20,
+        )
+
+    return requests.Response()
+
+
+def _source_label(source: dict) -> str:
+    ats = source.get("ats", "")
+    tenant = source.get("tenant", "")
+    pod = source.get("pod", "")
+    site = source.get("site", "")
+    return "/".join(part for part in (ats, tenant, pod, site) if part)
 
 
 def _normalize_custom_url(url: str) -> str:

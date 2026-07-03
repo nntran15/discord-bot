@@ -3,7 +3,6 @@
 # For custom career sites, add direct job-page URLs that expose JobPosting schema under `custom`.
 greenhouse:
   - stripe
-  - notion
   - andurilindustries
   - twosixtechnologies
 lever:
